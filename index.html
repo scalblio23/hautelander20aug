@@ -374,6 +374,7 @@ background-position: initial;
     color:var(--hs-text);
     margin-bottom:16px;
   }
+  #haute-survey .hs-req{color:#e25950;}
   #haute-survey .hs-input{
     width:100%;
     font-family:inherit;
@@ -394,19 +395,71 @@ background-position: initial;
     border-color:#e25950;
     box-shadow:0 0 0 3px rgba(226,89,80,.15);
   }
+  #haute-survey .hs-options{display:flex;flex-direction:column;gap:10px;}
+  #haute-survey .hs-option{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 16px;
+    border:1px solid var(--hs-border);
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+    color:var(--hs-text);
+    transition:border-color .15s,background-color .15s;
+  }
+  #haute-survey .hs-option:hover{border-color:var(--hs-accent);}
+  #haute-survey .hs-option input{
+    accent-color:var(--hs-accent);
+    width:18px;height:18px;flex:0 0 auto;margin:0;cursor:pointer;
+  }
+  #haute-survey .hs-option.is-selected{
+    border-color:var(--hs-accent);
+    background:rgba(24,139,246,.06);
+  }
+  #haute-survey .hs-options.hs-invalid .hs-option{border-color:#e25950;}
   #haute-survey .hs-error{
     color:#e25950;
     font-size:13px;
     margin:10px 0 0;
     min-height:1px;
   }
+  #haute-survey .hs-progress{
+    height:5px;
+    background:#e9ece7;
+    border-radius:999px;
+    overflow:hidden;
+    margin-bottom:24px;
+  }
+  #haute-survey .hs-progress-fill{
+    height:100%;
+    width:20%;
+    background:var(--hs-accent);
+    border-radius:999px;
+    transition:width .25s ease;
+  }
+  #haute-survey .hs-nav{display:flex;gap:12px;margin-top:22px;}
+  #haute-survey .hs-back{
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    color:var(--hs-muted);
+    font-family:inherit;
+    font-size:15px;
+    font-weight:600;
+    border:1px solid var(--hs-border);
+    border-radius:10px;
+    padding:15px 20px;
+    cursor:pointer;
+  }
+  #haute-survey .hs-back.is-shown{display:inline-flex;}
   #haute-survey .hs-next{
+    flex:1 1 auto;
     display:inline-flex;
     align-items:center;
     justify-content:center;
     gap:8px;
-    width:100%;
-    margin-top:22px;
     background:var(--hs-accent);
     color:#fff;
     font-family:inherit;
@@ -421,91 +474,180 @@ background-position: initial;
   }
   #haute-survey .hs-next:hover{opacity:.92;}
   #haute-survey .hs-next:active{transform:translateY(1px);}
+  #haute-survey .hs-next:disabled{opacity:.6;cursor:wait;}
 </style>
 
 <section id="haute-survey" aria-label="Get your free consult and quote">
   <form class="hs-card" id="haute-survey-form" novalidate>
+    <div class="hs-progress"><div class="hs-progress-fill" id="hs-progress"></div></div>
 
     <!-- Step 1: First name -->
-    <div class="hs-step is-active" data-step="0" data-field="first_name">
+    <div class="hs-step is-active" data-step="0" data-field="first_name" data-type="text">
       <label class="hs-q" for="hs-first-name">👋 Hey there! Let's start with your name:</label>
       <input class="hs-input" type="text" id="hs-first-name" name="first_name" autocomplete="given-name" placeholder="First name">
       <p class="hs-error" data-error></p>
     </div>
 
-    <button type="button" class="hs-next" id="hs-next">
-      <span class="hs-next-label">NEXT</span>
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4"/></svg>
-    </button>
+    <!-- Step 2: Interested -->
+    <div class="hs-step" data-step="1" data-field="interested" data-type="radio">
+      <span class="hs-q">Are you interested in a new kitchen?</span>
+      <div class="hs-options">
+        <label class="hs-option"><input type="radio" name="interested" value="Yes"><span>Yes</span></label>
+        <label class="hs-option"><input type="radio" name="interested" value="No"><span>No</span></label>
+      </div>
+      <p class="hs-error" data-error></p>
+    </div>
+
+    <!-- Step 3: Phone (required) -->
+    <div class="hs-step" data-step="2" data-field="phone" data-type="phone">
+      <label class="hs-q" for="hs-phone">Phone Number (In case we get disconnected) <span class="hs-req">*</span></label>
+      <input class="hs-input" type="tel" id="hs-phone" name="phone" autocomplete="tel" placeholder="Phone number">
+      <p class="hs-error" data-error></p>
+    </div>
+
+    <!-- Step 4: Suburb -->
+    <div class="hs-step" data-step="3" data-field="suburb" data-type="text">
+      <label class="hs-q" for="hs-suburb">What suburb are you looking to build / renovate in?</label>
+      <input class="hs-input" type="text" id="hs-suburb" name="suburb" placeholder="Suburb">
+      <p class="hs-error" data-error></p>
+    </div>
+
+    <!-- Step 5: Timeline -->
+    <div class="hs-step" data-step="4" data-field="timeline" data-type="radio">
+      <span class="hs-q">How soon are you looking to start?</span>
+      <div class="hs-options">
+        <label class="hs-option"><input type="radio" name="timeline" value="Within 1 month"><span>Within 1 month</span></label>
+        <label class="hs-option"><input type="radio" name="timeline" value="Within 1-3 Months"><span>Within 1-3 Months</span></label>
+        <label class="hs-option"><input type="radio" name="timeline" value="3 Months+ (please come back later)"><span>3 Months+ (please come back later)</span></label>
+      </div>
+      <p class="hs-error" data-error></p>
+    </div>
+
+    <div class="hs-nav">
+      <button type="button" class="hs-back" id="hs-back">Back</button>
+      <button type="button" class="hs-next" id="hs-next">
+        <span class="hs-next-label">NEXT</span>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4"/></svg>
+      </button>
+    </div>
   </form>
 </section>
 
 <script id="haute-survey-script">
 (function () {
+  var ZAPIER_HOOK = 'https://hooks.zapier.com/hooks/catch/16453711/4t814w0/';
+  var THANKYOU_URL = 'https://haute.scalbl.io/thankyou';
+
   var form = document.getElementById('haute-survey-form');
   var nextBtn = document.getElementById('hs-next');
+  var backBtn = document.getElementById('hs-back');
+  var progress = document.getElementById('hs-progress');
   if (!form || !nextBtn) return;
 
   var steps = Array.prototype.slice.call(form.querySelectorAll('.hs-step'));
   var answers = {};
   var current = 0;
 
-  function stepEl(i){ return steps[i]; }
   function inputOf(step){ return step.querySelector('.hs-input'); }
   function errorOf(step){ return step.querySelector('[data-error]'); }
+  function optionsOf(step){ return step.querySelector('.hs-options'); }
 
-  function showStep(i){
-    steps.forEach(function(s, idx){ s.classList.toggle('is-active', idx === i); });
-    var inp = inputOf(steps[i]);
+  function render(){
+    steps.forEach(function(s, idx){ s.classList.toggle('is-active', idx === current); });
+    if (progress) progress.style.width = Math.round((current + 1) / steps.length * 100) + '%';
+    backBtn.classList.toggle('is-shown', current > 0);
+    nextBtn.querySelector('.hs-next-label').textContent = (current === steps.length - 1) ? 'SUBMIT' : 'NEXT';
+    var inp = inputOf(steps[current]);
     if (inp) setTimeout(function(){ try { inp.focus(); } catch(e){} }, 30);
-    nextBtn.querySelector('.hs-next-label').textContent = (i === steps.length - 1) ? 'NEXT' : 'NEXT';
   }
 
   function clearError(step){
     var e = errorOf(step); if (e) e.textContent = '';
     var inp = inputOf(step); if (inp) inp.classList.remove('hs-invalid');
+    var opts = optionsOf(step); if (opts) opts.classList.remove('hs-invalid');
   }
   function showError(step, msg){
     var e = errorOf(step); if (e) e.textContent = msg;
     var inp = inputOf(step); if (inp) inp.classList.add('hs-invalid');
+    var opts = optionsOf(step); if (opts) opts.classList.add('hs-invalid');
+  }
+
+  function stepValue(step){
+    var type = step.getAttribute('data-type');
+    if (type === 'radio'){
+      var checked = step.querySelector('input[type="radio"]:checked');
+      return checked ? checked.value : '';
+    }
+    var inp = inputOf(step);
+    return inp ? inp.value.trim() : '';
   }
 
   function validateStep(step){
     var field = step.getAttribute('data-field');
-    var inp = inputOf(step);
-    var val = inp ? inp.value.trim() : '';
-    if (field === 'first_name'){
-      if (!val){ showError(step, 'Please enter your name'); return false; }
+    var type = step.getAttribute('data-type');
+    var val = stepValue(step);
+    if (type === 'phone'){
+      if (!/^[+()\d][\d\s()-]{5,}$/.test(val)){ showError(step, 'Please enter a valid phone number'); return false; }
+    } else if (type === 'radio'){
+      if (!val){ showError(step, 'Please choose an option'); return false; }
+    } else {
+      if (!val){ showError(step, 'Please fill this in to continue'); return false; }
     }
     answers[field] = val;
     return true;
   }
 
-  form.addEventListener('input', function(e){
-    var step = e.target.closest('.hs-step'); if (step) clearError(step);
+  // live feedback
+  form.addEventListener('input', function(e){ var s = e.target.closest('.hs-step'); if (s) clearError(s); });
+  form.addEventListener('change', function(e){
+    var s = e.target.closest('.hs-step'); if (!s) return;
+    clearError(s);
+    var opts = optionsOf(s);
+    if (opts) opts.querySelectorAll('.hs-option').forEach(function(o){
+      o.classList.toggle('is-selected', !!o.querySelector('input:checked'));
+    });
   });
 
-  function advance(){
-    var step = steps[current];
-    if (!validateStep(step)) return;
-    if (current < steps.length - 1){
-      current++;
-      showStep(current);
-    } else {
-      // Final step reached. More questions will be added here.
-      // answers currently holds: { first_name: "..." }
-      // Submission wiring will be added once all questions are in place.
-      console.log('Survey answers so far:', answers);
-    }
+  var submitting = false;
+  function submitLead(){
+    if (submitting) return;
+    submitting = true;
+    nextBtn.disabled = true;
+    nextBtn.querySelector('.hs-next-label').textContent = 'SUBMITTING…';
+    var payload = JSON.stringify({
+      source: 'haute-optin-funnel',
+      submittedAt: new Date().toISOString(),
+      page: window.location.href,
+      lead: {
+        first_name: answers.first_name || '',
+        interested: answers.interested || '',
+        phone: answers.phone || '',
+        suburb: answers.suburb || '',
+        timeline: answers.timeline || ''
+      }
+    });
+    var done = false;
+    function go(){ if (!done){ done = true; window.location.href = THANKYOU_URL; } }
+    fetch(ZAPIER_HOOK, { method:'POST', body:payload, keepalive:true, headers:{ 'Content-Type':'text/plain' } }).then(go, go);
+    setTimeout(go, 2500);
   }
 
+  function advance(){
+    if (!validateStep(steps[current])) return;
+    if (current < steps.length - 1){ current++; render(); }
+    else submitLead();
+  }
+  function goBack(){ if (current > 0){ current--; render(); } }
+
   nextBtn.addEventListener('click', advance);
+  backBtn.addEventListener('click', goBack);
   form.addEventListener('keydown', function(e){
     if (e.key === 'Enter'){ e.preventDefault(); advance(); }
   });
 
-  showStep(0);
+  render();
 })();
+
 </script>
 <!-- ==== /HAUTE SURVEY ==== -->
 </div><!----></div></div><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----></div><!--]--><!--[--><div id="custom-code-AuqXgmcHRM" data-animation-class style="" class="c-custom-code c-wrapper custom-code-AuqXgmcHRM"><!----><!----><!----><!----><!----><!----><!----><span></span><div id="custom-code-AuqXgmcHRM__custom-code" class="custom-code-container ccustom-code-AuqXgmcHRM"><div class="image-marquee" id="kitchenMarquee">
