@@ -653,8 +653,25 @@ background-position: initial;
     });
     var done = false;
     function go(){ if (!done){ done = true; window.location.href = THANKYOU_URL; } }
-    fetch(ZAPIER_HOOK, { method:'POST', body:payload, keepalive:true, headers:{ 'Content-Type':'text/plain' } }).then(go, go);
-    setTimeout(go, 2500);
+
+    // sendBeacon is designed to survive page navigation, so the webhook
+    // still reaches Zapier even though we redirect immediately after.
+    var sent = false;
+    try {
+      if (navigator.sendBeacon) {
+        sent = navigator.sendBeacon(ZAPIER_HOOK, new Blob([payload], { type: 'text/plain' }));
+      }
+    } catch (e) { sent = false; }
+
+    if (sent) {
+      go();
+    } else {
+      // Fallback: keepalive fetch, then navigate whether it resolves or not.
+      try {
+        fetch(ZAPIER_HOOK, { method:'POST', body:payload, keepalive:true, mode:'no-cors', headers:{ 'Content-Type':'text/plain' } }).then(go, go);
+      } catch (e) { go(); }
+      setTimeout(go, 2000);
+    }
   }
 
   function advance(){
