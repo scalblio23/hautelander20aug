@@ -460,7 +460,7 @@ background-position: initial;
     align-items:center;
     justify-content:center;
     gap:8px;
-    background:var(--hs-accent);
+    background:#000000;
     color:#fff;
     font-family:inherit;
     font-size:16px;
@@ -552,13 +552,20 @@ background-position: initial;
   function errorOf(step){ return step.querySelector('[data-error]'); }
   function optionsOf(step){ return step.querySelector('.hs-options'); }
 
+  var firstRender = true;
   function render(){
     steps.forEach(function(s, idx){ s.classList.toggle('is-active', idx === current); });
     if (progress) progress.style.width = Math.round((current + 1) / steps.length * 100) + '%';
     backBtn.classList.toggle('is-shown', current > 0);
     nextBtn.querySelector('.hs-next-label').textContent = (current === steps.length - 1) ? 'SUBMIT' : 'NEXT';
+    if (!firstRender){
+      try {
+        document.getElementById('haute-survey').scrollIntoView({ behavior:'smooth', block:'center' });
+      } catch(e){}
+    }
+    firstRender = false;
     var inp = inputOf(steps[current]);
-    if (inp) setTimeout(function(){ try { inp.focus(); } catch(e){} }, 30);
+    if (inp) setTimeout(function(){ try { inp.focus({ preventScroll:true }); } catch(e){ try { inp.focus(); } catch(_){} } }, 200);
   }
 
   function clearError(step){
@@ -606,6 +613,10 @@ background-position: initial;
     if (opts) opts.querySelectorAll('.hs-option').forEach(function(o){
       o.classList.toggle('is-selected', !!o.querySelector('input:checked'));
     });
+    // Auto-advance once an option is chosen (radio steps only)
+    if (s.getAttribute('data-type') === 'radio' && e.target.type === 'radio' && e.target.checked){
+      setTimeout(function(){ if (steps[current] === s) advance(); }, 350);
+    }
   });
 
   var submitting = false;
