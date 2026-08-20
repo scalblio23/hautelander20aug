@@ -483,41 +483,95 @@ background-position: initial;
   var nextBtn = document.querySelector('.ghl-footer-next');
   if (!form || !nextBtn) return;
 
+  // native radio grouping so options are mutually exclusive
   form.querySelectorAll('input[type="radio"][data-q]').forEach(function (r) { r.name = r.getAttribute('data-q'); });
 
-  function radioValue(q) {
-    var c = form.querySelector('input[type="radio"][data-q="' + q + '"]:checked');
-    return c ? c.value : '';
+  // Build the step list: each field container that holds an input (skips the heading block)
+  var containers = Array.prototype.slice.call(form.querySelectorAll('.form-field-container'));
+  var steps = containers
+    .filter(function (c) { return c.querySelector('input'); })
+    .map(function (c) {
+      var wrapper = c.closest('[style*="margin-bottom"]') || c;
+      var input = c.querySelector('input');
+      var dq = input.getAttribute('data-q');
+      var type = input.type === 'radio' ? 'radio' : (input.type === 'tel' ? 'phone' : 'text');
+      return { wrapper: wrapper, dq: dq, type: type };
+    });
+  if (!steps.length) return;
+
+  var current = 0;
+
+  // progress bar (best-effort: fill any progress element GHL rendered)
+  var progressFill = form.parentNode.querySelector('.progress-bar, [class*="progress"] [style*="width"]')
+    || document.querySelector('.progress-bar');
+
+  function render() {
+    steps.forEach(function (s, i) { s.wrapper.style.display = i === current ? '' : 'none'; });
+    clearError();
+    var span = nextBtn.querySelector('span');
+    if (span) span.textContent = current === steps.length - 1 ? 'SUBMIT' : 'NEXT';
+    if (progressFill) {
+      try { progressFill.style.width = Math.round((current) / (steps.length - 1) * 100) + '%'; } catch (e) {}
+    }
+    var firstInput = steps[current].wrapper.querySelector('input');
+    if (firstInput && firstInput.type !== 'radio') { try { firstInput.focus(); } catch (e) {} }
   }
+
   function clearError() {
-    var e = document.getElementById('hk-form-error'); if (e) e.remove();
-    var ph = document.getElementById('phone'); if (ph) ph.style.borderColor = '';
+    var e = document.getElementById('hk-form-error');
+    if (e) e.remove();
+    steps.forEach(function (s) { var inp = s.wrapper.querySelector('input:not([type=radio])'); if (inp) inp.style.borderColor = ''; });
   }
   function showError(msg) {
     clearError();
-    var ph = document.getElementById('phone'); if (ph) ph.style.borderColor = '#e25950';
-    var e = document.createElement('p'); e.id = 'hk-form-error'; e.textContent = msg;
-    form.appendChild(e); if (ph) ph.focus();
+    var wrap = steps[current].wrapper;
+    var inp = wrap.querySelector('input:not([type=radio])');
+    if (inp) inp.style.borderColor = '#e25950';
+    var e = document.createElement('p');
+    e.id = 'hk-form-error'; e.textContent = msg;
+    wrap.appendChild(e);
   }
   form.addEventListener('input', clearError);
+  form.addEventListener('change', clearError);
+
+  function value(dq) {
+    var radios = form.querySelectorAll('input[type="radio"][data-q="' + dq + '"]');
+    if (radios.length) {
+      for (var i = 0; i < radios.length; i++) if (radios[i].checked) return radios[i].value;
+      return '';
+    }
+    var input = form.querySelector('input[data-q="' + dq + '"]');
+    return input ? input.value.trim() : '';
+  }
+  function validateCurrent() {
+    var s = steps[current];
+    var v = value(s.dq);
+    if (s.type === 'phone') {
+      if (!/^[+()\d][\d\s()-]{5,}$/.test(v)) { showError('Please enter a valid phone number'); return false; }
+      return true;
+    }
+    if (!v) {
+      showError(s.type === 'radio' ? 'Please choose an option' : 'Please fill this in to continue');
+      return false;
+    }
+    return true;
+  }
 
   var submitting = false;
-  function submit() {
+  function submitLead() {
     if (submitting) return;
-    var phone = ((document.getElementById('phone') || {}).value || '').trim();
-    if (!/^[+()\d][\d\s()-]{5,}$/.test(phone)) { showError('Please enter a valid phone number'); return; }
     submitting = true;
-    var span = nextBtn.querySelector('span'); if (span) span.textContent = 'SUBMITTING\u2026';
+    var span = nextBtn.querySelector('span'); if (span) span.textContent = 'SUBMITTING…';
     var payload = JSON.stringify({
       source: 'haute-optin-funnel',
       submittedAt: new Date().toISOString(),
       page: window.location.href,
       lead: {
-        first_name: ((document.getElementById('first_name') || {}).value || '').trim(),
-        interested: radioValue('thinking_of_building_or_renovating_a_kitchen_9pw_copy'),
-        phone: phone,
-        suburb: ((document.getElementById('4rW9NzwkW77AXQM76LI9') || {}).value || '').trim(),
-        timeline: radioValue('radio_26sll_s7k_copy')
+        first_name: value('first_name'),
+        interested: value('thinking_of_building_or_renovating_a_kitchen_9pw_copy'),
+        phone: value('phone'),
+        suburb: value('single_line_49jra'),
+        timeline: value('radio_26sll_s7k_copy')
       }
     });
     var done = false;
@@ -525,10 +579,19 @@ background-position: initial;
     fetch(ZAPIER_HOOK, { method: 'POST', body: payload, keepalive: true, headers: { 'Content-Type': 'text/plain' } }).then(go, go);
     setTimeout(go, 2500);
   }
-  nextBtn.addEventListener('click', submit);
-  nextBtn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); submit(); } });
+
+  function advance() {
+    if (!validateCurrent()) return;
+    if (current < steps.length - 1) { current++; render(); }
+    else submitLead();
+  }
+
+  nextBtn.addEventListener('click', advance);
+  nextBtn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance(); } });
   form.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.type !== 'radio') { e.preventDefault(); submit(); }
+    if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.type !== 'radio') { e.preventDefault(); advance(); }
   });
+  // advancing on radio choice feels natural but keep NEXT-driven to match original; just render step 1
+  render();
 })();
 </script></body></html>
