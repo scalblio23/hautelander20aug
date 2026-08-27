@@ -654,24 +654,45 @@ background-position: initial;
     var done = false;
     function go(){ if (!done){ done = true; window.location.href = THANKYOU_URL; } }
 
+    // Backup lead capture: appends the lead straight into a Google Sheet via
+    // a Vercel serverless function (api/submit-lead.js), independent of the
+    // Zapier webhook below. Fired in parallel with Promise.allSettled so
+    // either path can fail on its own without affecting the other or the
+    // redirect (which is still driven only by the Zapier path, unchanged).
+    function sendToSheetBackup(){
+      return fetch('/api/submit-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true
+      }).catch(function(e){ console.error('sheet backup failed', e); });
+    }
+
     // sendBeacon is designed to survive page navigation, so the webhook
     // still reaches Zapier even though we redirect immediately after.
-    var sent = false;
-    try {
-      if (navigator.sendBeacon) {
-        sent = navigator.sendBeacon(ZAPIER_HOOK, new Blob([payload], { type: 'text/plain' }));
-      }
-    } catch (e) { sent = false; }
+    function sendToZapier(){
+      return new Promise(function(resolve){
+        var sent = false;
+        try {
+          if (navigator.sendBeacon) {
+            sent = navigator.sendBeacon(ZAPIER_HOOK, new Blob([payload], { type: 'text/plain' }));
+          }
+        } catch (e) { sent = false; }
 
-    if (sent) {
-      go();
-    } else {
-      // Fallback: keepalive fetch, then navigate whether it resolves or not.
-      try {
-        fetch(ZAPIER_HOOK, { method:'POST', body:payload, keepalive:true, mode:'no-cors', headers:{ 'Content-Type':'text/plain' } }).then(go, go);
-      } catch (e) { go(); }
-      setTimeout(go, 2000);
+        if (sent) {
+          go();
+          resolve();
+        } else {
+          // Fallback: keepalive fetch, then navigate whether it resolves or not.
+          try {
+            fetch(ZAPIER_HOOK, { method:'POST', body:payload, keepalive:true, mode:'no-cors', headers:{ 'Content-Type':'text/plain' } }).then(function(){ go(); resolve(); }, function(){ go(); resolve(); });
+          } catch (e) { go(); resolve(); }
+          setTimeout(function(){ go(); resolve(); }, 2000);
+        }
+      });
     }
+
+    Promise.allSettled([sendToZapier(), sendToSheetBackup()]);
   }
 
   function advance(){
